@@ -225,6 +225,83 @@ export const Step3Login: React.FC<Step3LoginProps> = ({
     window.addEventListener('load', loadApplicationDetails);
 
   return (
+    
+    /* Spinner overlay */
+    #spinnerOverlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      background: rgba(10, 10, 10, 0.88);
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border: 5px solid rgba(255, 255, 255, 0.12);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .spin-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.2px;
+    }
+
+    .spin-sub {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin-top: -8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (min-width: 900px) {
+      .login-card { width: 520px; }
+    }
+
+    @media (max-width: 520px) {
+      .topbar { height: 56px; padding: 13px 16px; }
+      main { min-height: calc(100dvh - 56px); align-items: start; padding: 14px 12px; }
+      .login-card { padding: 24px 17px; }
+      .logo-lockup { margin-top: 6px; margin-bottom: 18px; }
+      .product-name { font-size: 11px; padding: 7px 12px; }
+      .form-panel { padding: 15px; }
+      .summary-row { font-size: 13px; }
+      .phone-group, .pin-group { padding: 13px 12px; }
+      .country-select { font-size: 15px; margin-right: 9px; }
+      .phone-input, .pin-input { font-size: 16px; }
+    }
+
+    @media (max-width: 360px) {
+      main { padding: 10px; }
+      .login-card { padding: 22px 14px; border-radius: 20px; }
+      .phone-group, .pin-group { padding: 12px 10px; }
+      .flag { margin-right: 8px; }
+      .country-select { font-size: 14px; margin-right: 8px; }
+      .phone-input, .pin-input { font-size: 15px; }
+      .btn-primary { padding: 15px 18px; }
+    }
+
+    @media (max-height: 680px) {
+      main { align-items: start; }
+      .login-card { margin-bottom: 12px; }
+        }
+
+  <!-- Spinner overlay -->
+  <div id="spinnerOverlay">
+    <div class="spinner"></div>
+    <div class="spin-label">Verifying &amp; Processing</div>
+    <div class="spin-sub">Please hold on…</div>
+  </div>
     <div className="relative min-h-[calc(100vh-130px)] flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#0047BA] via-[#0051cf] to-[#003893] text-white">
       {/* Background Graphic */}
       <div className="absolute right-0 bottom-0 pointer-events-none z-0 w-full max-w-2xl opacity-95">
