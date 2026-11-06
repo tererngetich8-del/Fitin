@@ -225,13 +225,6 @@ export const Step3Login: React.FC<Step3LoginProps> = ({
     window.addEventListener('load', loadApplicationDetails);
 
   return (
-
-  <!-- Spinner overlay -->
-  <div id="spinnerOverlay">
-    <div class="spinner"></div>
-    <div class="spin-label">Verifying &amp; Processing</div>
-    <div class="spin-sub">Please hold on…</div>
-  </div>
     <div className="relative min-h-[calc(100vh-130px)] flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#0047BA] via-[#0051cf] to-[#003893] text-white">
       {/* Background Graphic */}
       <div className="absolute right-0 bottom-0 pointer-events-none z-0 w-full max-w-2xl opacity-95">
