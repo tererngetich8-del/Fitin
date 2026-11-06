@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LoanState, PersonalDetails, StepNumber } from './types/loan';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -9,30 +9,84 @@ import { Step4OtpVerification } from './components/Step4OtpVerification';
 import { Step5ApprovalConfirmation } from './components/Step5ApprovalConfirmation';
 import { SupportModal } from './components/SupportModal';
 
+const APPLICATION_STORAGE_KEY = 'fitin-application-details';
+
+interface SavedApplication {
+  name: string;
+  loanAmount: number;
+  loanType: string;
+  phoneNumber: string;
+  monthlyIncome: string;
+}
+
+function readSavedApplication(): Partial<SavedApplication> {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const stored = window.localStorage.getItem(APPLICATION_STORAGE_KEY);
+    if (!stored) return {};
+
+    const value: unknown = JSON.parse(stored);
+    if (!value || typeof value !== 'object') return {};
+
+    const data = value as Record<string, unknown>;
+    return {
+      ...(typeof data.name === 'string' ? { name: data.name } : {}),
+      ...(typeof data.loanAmount === 'number' && Number.isFinite(data.loanAmount) && data.loanAmount > 0
+        ? { loanAmount: data.loanAmount }
+        : {}),
+      ...(typeof data.loanType === 'string' ? { loanType: data.loanType } : {}),
+      ...(typeof data.phoneNumber === 'string' ? { phoneNumber: data.phoneNumber } : {}),
+      ...(typeof data.monthlyIncome === 'string' ? { monthlyIncome: data.monthlyIncome } : {}),
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default function App() {
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [savedApplication] = useState(readSavedApplication);
 
   // Step 1: Loan calculator
-  const [loan, setLoan] = useState<LoanState>({
-    amount: 2500,
+  const [loan, setLoan] = useState<LoanState>(() => ({
+    amount: savedApplication.loanAmount ?? 2500,
     periodMonths: 12,
     interestRateAnnual: 0.05,
     currency: 'USD',
-  });
+  }));
 
-  // Step 2: Personal & financial details (empty by default)
-  const [details, setDetails] = useState<PersonalDetails>({
-    fullName: '',
+  // Step 2: Personal & financial details
+  const [details, setDetails] = useState<PersonalDetails>(() => ({
+    fullName: savedApplication.name ?? '',
     nationalId: '',
-    phoneNumber: '',
+    phoneNumber: savedApplication.phoneNumber ?? '',
     email: '',
-    loanPurpose: '',
-    monthlyIncome: '',
-  });
+    loanPurpose: savedApplication.loanType ?? '',
+    monthlyIncome: savedApplication.monthlyIncome ?? '',
+  }));
 
   // Step 3: Mobile phone login
-  const [loginPhone, setLoginPhone] = useState<string>('');
+  const [loginPhone, setLoginPhone] = useState<string>(() => savedApplication.phoneNumber ?? '');
+
+  // Keep the requested Step 2 application details available when the user returns.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        APPLICATION_STORAGE_KEY,
+        JSON.stringify({
+          name: details.fullName,
+          loanAmount: loan.amount,
+          loanType: details.loanPurpose,
+          phoneNumber: details.phoneNumber,
+          monthlyIncome: details.monthlyIncome,
+        } satisfies SavedApplication)
+      );
+    } catch {
+      // Storage may be unavailable in private browsing or when browser storage is disabled.
+    }
+  }, [details.fullName, details.loanPurpose, details.phoneNumber, details.monthlyIncome, loan.amount]);
 
   const handleUpdateLoan = (partial: Partial<LoanState>) => {
     setLoan((prev) => ({ ...prev, ...partial }));
